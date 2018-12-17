@@ -1,0 +1,1 @@
+gcc -Wall -Wextra -Werror main.c libft/ft_strlen.c libft/ft_strjoin.c libft/ft_strnew.c libft/ft_strcpy.c libft/ft_memalloc.c get_next_line.c -I get_next_line.h -o t
