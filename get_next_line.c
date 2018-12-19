@@ -11,7 +11,7 @@
 /* ************************************************************************** */
 
 #include "get_next_line.h"
-#include <stdio.h>
+//#include <stdio.h>
 
 int		buff_has_endl(char *buff, size_t *nl_pos)
 {
@@ -44,7 +44,7 @@ int		get_next_line(const int fd, char **line)
 	static int		old_fd;
 	static char		buff[BUFF_SIZE + 1];
 
-	if (fd < 0)
+	if (fd < 0 || !line)
 		return (-1);
 
 	//Если предыдущий запуск был того же ФД и чтение файла было не до конца (есть остаток)
@@ -69,41 +69,57 @@ int		get_next_line(const int fd, char **line)
 	//
 	//		занулить весь буффер?????
 
-	//if ()
-	//{}
-		//*line = ft_strnew(0);
-		//nl_pos = 0;
 		if (!(*line = (char *)malloc(sizeof(char))))
 			return (-1);
 		**line = 0;
-		/*printf("nl_pos1 = %lu\n", nl_pos);
 		read_s = nl_pos;
 		if (fd == old_fd && buff[nl_pos])
-			if (buff_has_endl(buff[nl_pos], &nl_pos))
+		{
+			tmp = *line;
+			if (buff_has_endl(buff, &nl_pos))
+			{
 				{
-					printf("nl_pos2 = %lu\n", nl_pos);
 					if (!(*line = ft_strjoin(*line, buff + read_s)))
+					{
+						free(tmp);
 						return (-1);
+					}
+					//printf("1nl: %s\n", *line);
+					free(tmp);
 					return (1);
-				}*/
+				}
+			}
+			if (!(*line = ft_strjoin(*line, buff + read_s)))
+			{
+				free(tmp);
+				return (-1);
+			}
+			//printf("10: %s\n", *line);
+			free(tmp);
+		}
 		old_fd = fd;
 		nl_pos = 0;
 		while ((read_s = read(fd, buff, BUFF_SIZE)))
 		{
+			tmp = *line;
 			buff[read_s] = 0;
 			if (buff_has_endl(buff, &nl_pos))
 			{
 				if (!(*line = ft_strjoin(*line, buff)))
+				{
+					free(tmp);
 					return (-1);
+				}
+				//printf("2nl: %s\n", *line);
+				free(tmp);
 				return (1);
 			}
-			tmp = *line;
 			if (!(*line = ft_strjoin(*line, buff)))
 			{
 				free(tmp);
 				return (-1);
 			}
-			printf("%lu\n", nl_pos);
+			//printf("20: %s\n", *line);
 			free(tmp);
 		}
 	return (0);
