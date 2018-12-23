@@ -1,84 +1,85 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   get_next_line.c                                    :+:      :+:    :+:   */
+/*   get_next_line_.c                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: lbellona <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2018/12/15 15:28:01 by lbellona          #+#    #+#             */
-/*   Updated: 2018/12/19 18:26:51 by lbellona         ###   ########.fr       */
+/*   Created: 2018/12/21 18:12:32 by lbellona          #+#    #+#             */
+/*   Updated: 2018/12/23 18:31:47 by lbellona         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-static int		buff_has_endl(char *buff, size_t *nl_pos)
+static t_list		*get_file(t_list **files, int fd)
 {
-	unsigned char	*str;
-	size_t			i;
+	t_list			*tmp_l;
 
-	str = (unsigned char *)buff;
-	i = *nl_pos;
-	while (str[i])
+	tmp_l = *files;
+	while (tmp_l)
 	{
-		if (str[i] == '\n')
-		{
-			buff[i] = '\0';
-			*nl_pos = i + 1;
-			return (1);
-		}
-		i++;
+		if (fd == (int)tmp_l->content_size)
+			return (tmp_l);
+		tmp_l = tmp_l->next;
 	}
-	return (0);
+	tmp_l = ft_lstnew("\0", fd);
+	ft_lstadd(files, tmp_l);
+	return (*files);
 }
 
-static int		read_line(char **line, char *buff, size_t *nl_pos, size_t start_p)
+static int			str_free_and_realloc(char **oldstr, char *newstr)
 {
-	char	*tmp;
+	char			*tmp;
 
-	tmp = *line;
-	if (buff_has_endl(buff, nl_pos))
+	tmp = *oldstr;
+	if (!newstr)
+		return (0);
+	*oldstr = newstr;
+	free(tmp);
+	return (1);
+}
+
+static int			read_line(char **line, char **content)
+{
+	char			*nl_pos;
+
+	if ((nl_pos = ft_strchr(*content, '\n')))
 	{
-		if (!(*line = ft_strjoin(*line, buff + start_p)))
-		{
-			free(tmp);
-			return (-1);
-		}
-		free(tmp);
+		*nl_pos = '\0';
+		str_free_and_realloc(line, ft_strjoin(*line, *content));
+		str_free_and_realloc(content, ft_strdup(nl_pos + 1));
 		return (1);
 	}
-	if (!(*line = ft_strjoin(*line, buff + start_p)))
-	{
-		free(tmp);
-		return (-1);
-	}
-	free(tmp);
+	str_free_and_realloc(line, ft_strjoin(*line, *content));
+	str_free_and_realloc(content, ft_strdup(*content + ft_strlen(*content)));
 	return (2);
 }
 
-int		get_next_line(const int fd, char **line)
+int					get_next_line(const int fd, char **line)
 {
+	char			buff[BUFF_SIZE + 1];
 	int				read_s;
-	static size_t	nl_pos;
 	int				ret_value;
-	static int		old_fd;
-	static char		buff[BUFF_SIZE + 1];
+	static t_list	*files;
+	t_list			*cur_f;
 
-	if (fd < 0 || !line || !(*line = (char *)malloc(sizeof(char))))
+	if (fd < 0 || !line)
 		return (-1);
-	ret_value = 0;
+	if (!(*line = (char *)malloc(sizeof(char))) || read(fd, buff, 0) < 0)
+		return (-1);
+	cur_f = get_file(&files, fd);
 	**line = 0;
-	if (fd == old_fd && nl_pos && buff[nl_pos])
-		if ((ret_value = read_line(line, buff, &nl_pos, nl_pos)) < 2)
+	ret_value = 0;
+	if (*(char*)(cur_f->content))
+		if ((ret_value = read_line(line, (char **)&cur_f->content)) < 2)
 			return (ret_value);
-	old_fd = fd;
-	nl_pos = 0;
 	while ((read_s = read(fd, buff, BUFF_SIZE)))
 	{
-		if (read_s < 0)
-			return (-1);
-		buff[read_s] = 0;
-		if ((ret_value = read_line(line, buff, &nl_pos, 0)) < 2)
+		buff[read_s] = '\0';
+		str_free_and_realloc((char **)&cur_f->content,
+				ft_strjoin(cur_f->content, buff));
+		if ((ret_value = read_line(line, (char **)&cur_f->content)) < 2)
 			return (ret_value);
 	}
 	return (ret_value > 0 ? 1 : 0);
