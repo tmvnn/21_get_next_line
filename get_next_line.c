@@ -6,7 +6,7 @@
 /*   By: lbellona <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/12/21 18:12:32 by lbellona          #+#    #+#             */
-/*   Updated: 2018/12/23 18:31:47 by lbellona         ###   ########.fr       */
+/*   Updated: 2018/12/24 17:39:09 by lbellona         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,12 +23,13 @@ static t_list		*get_file(t_list **files, int fd)
 			return (tmp_l);
 		tmp_l = tmp_l->next;
 	}
-	tmp_l = ft_lstnew("\0", fd);
+	if (!(tmp_l = ft_lstnew("\0", fd)))
+		return (NULL);
 	ft_lstadd(files, tmp_l);
 	return (*files);
 }
 
-static int			str_free_and_realloc(char **oldstr, char *newstr)
+static int			fr_n_re(char **oldstr, char *newstr)
 {
 	char			*tmp;
 
@@ -47,12 +48,12 @@ static int			read_line(char **line, char **content)
 	if ((nl_pos = ft_strchr(*content, '\n')))
 	{
 		*nl_pos = '\0';
-		str_free_and_realloc(line, ft_strjoin(*line, *content));
-		str_free_and_realloc(content, ft_strdup(nl_pos + 1));
+		SF_ALCN((fr_n_re(line, ft_strjoin(*line, *content))));
+		SF_ALCN((fr_n_re(content, ft_strdup(nl_pos + 1))));
 		return (1);
 	}
-	str_free_and_realloc(line, ft_strjoin(*line, *content));
-	str_free_and_realloc(content, ft_strdup(*content + ft_strlen(*content)));
+	SF_ALCN((fr_n_re(line, ft_strjoin(*line, *content))));
+	SF_ALCN((fr_n_re(content, ft_strdup(*content + ft_strlen(*content)))));
 	return (2);
 }
 
@@ -64,11 +65,10 @@ int					get_next_line(const int fd, char **line)
 	static t_list	*files;
 	t_list			*cur_f;
 
-	if (fd < 0 || !line)
+	if (fd < 0 || !line || read(fd, buff, 0) < 0)
 		return (-1);
-	if (!(*line = (char *)malloc(sizeof(char))) || read(fd, buff, 0) < 0)
-		return (-1);
-	cur_f = get_file(&files, fd);
+	SF_ALCN((*line = (char *)malloc(sizeof(char))));
+	SF_ALCN((cur_f = get_file(&files, fd)));
 	**line = 0;
 	ret_value = 0;
 	if (*(char*)(cur_f->content))
@@ -77,8 +77,8 @@ int					get_next_line(const int fd, char **line)
 	while ((read_s = read(fd, buff, BUFF_SIZE)))
 	{
 		buff[read_s] = '\0';
-		str_free_and_realloc((char **)&cur_f->content,
-				ft_strjoin(cur_f->content, buff));
+		SF_ALCN((fr_n_re((char **)&cur_f->content,
+						ft_strjoin(cur_f->content, buff))));
 		if ((ret_value = read_line(line, (char **)&cur_f->content)) < 2)
 			return (ret_value);
 	}
